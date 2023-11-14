@@ -1,0 +1,238 @@
+---
+title: "Analyse de séries temporelles avec R"
+author: "Alexis Gabadinho"
+date: "2023-10-05"
+
+output:
+  beamer_presentation:
+    theme: "AnnArbor"
+    colortheme: "dolphin"
+    fonttheme: "structurebold"
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Environnement de travail (rappels)
+
+## Importation de fichiers csv (1)
+
+- On importe les données à partir du fichier csv
+- A noter: dans le fichier csv, le séparateur décimal est une virgule
+
+\tiny
+```{r pib_read, echo=TRUE, fig.height=6, fig.width=10}
+pib <- read.csv("../data/pib_fr.csv", header=TRUE, sep=";", dec = ",")
+head(pib)
+```
+
+## Importation de fichiers csv (2)
+
+\tiny
+```{r pib_summary, echo=TRUE, fig.height=6, fig.width=10}
+summary(pib)
+```
+
+## Importation de fichiers csv (2)
+
+- Pour importer les données à partir du fichier csv dans un objet tibble
+- read_csv2() uses ; for the field separator and , for the decimal point. This format is common in some European countries.
+
+\tiny
+```{r pib_read_ts, echo=TRUE, fig.height=6, fig.width=10}
+library(tidyverse)
+pib_tbl <- read_csv2("../data/pib_fr.csv")
+head(pib_tbl)
+```
+
+## Extraction de l'année
+
+\tiny
+```{r pib_mutate, echo=TRUE, fig.height=6, fig.width=10}
+pib_tbl <- pib_tbl %>% mutate(ANNEE=substring(PERIODE, 1, 4), TRIMESTRE=substring(PERIODE, 6, 7))
+pib_tbl %>% select("PIB", "ANNEE", "TRIMESTRE")
+```
+
+## Matrice de corrélation
+
+\tiny
+```{r pib_corr, echo=TRUE, fig.height=6, fig.width=10}
+datanum <- pib_tbl %>% select(-PERIODE, -ANNEE, -TRIMESTRE)
+cormat <- round(cor(datanum),2)
+cormat
+```
+
+## Heatmap
+
+\tiny
+```{r pib_corr_heatmap, echo=TRUE, fig.height=6, fig.width=10}
+library(reshape2)
+cormat %>% melt() %>% ggplot(aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+```
+
+
+## Pairplot
+
+\tiny
+```{r pib_pairplot, echo=TRUE, fig.height=6, fig.width=10}
+library(GGally)
+# pib_tbl %>% select(-PERIODE, -ANNEE, -TRIMESTRE) %>% ggpairs() 
+```
+
+# Librairies spécialisées et structures de séries temporelles dans R
+
+## Séries temporelles avec R (1)
+
+- La classe de base fournie par R pour représenter des séries temporelles s’appelle Ts (abréviation de l’anglais time series). Cette classe est définie dans le package stats. 
+- Elle concerne des séries temporelles qui sont échantillonnées à des périodes équidistantes dans le temps. 
+
+
+## Séries temporelles avec R (2)
+
+- Un objet de classe ts possède trois paramètres caractéristiques :
+  - le paramètre frequency désigne le nombre d’observations par unité de temps. Si l’unité de temps de la série est l’année, la valeur 4 correspond à des trimestres et la valeur 12 à des mois ;
+  - le paramètre start désigne la date de début de la série temporelle. Elle est exprimée comme un nombre unique ou comme un vecteur de deux entiers qui représentent respectivement une unité temporelle (comme une année) et une subdivision de cette unité (comme un mois ou un trimestre selon la valeur du paramètre frequency) ;
+  - le paramètre end désigne la date de fin de la série temporelle. Sa valeur est exprimée comme pour le paramètre start
+
+## Transformation des données en objet ts
+
+\tiny
+```{r pib_ts, echo=TRUE, fig.height=6, fig.width=10}
+pib_ts <- ts(pib['PIB'], frequency=4,start=c(1949,1))
+class(pib_ts)
+```
+
+## Manipulation des objets ts
+
+- La fonction window permet d’extraire une portion d’une série temporelle. Elle possède des arguments start et end pour indiquer les dates de début et de fin de la série extraite. On peut aussi
+utiliser l’argument optionnel frequency pour réétalonner la nouvelle série selon une fréquence différente. L’argument optionnel extend prend une valeur logique ( TRUE ou FALSE ) : il autorise l’extension d’une série temporelle à des dates qui ne figurent pas dans la série initiale
+\tiny
+```{r pib_ts_S21, echo=TRUE}
+pib_ts_S21 <- window(pib_ts, start=2000)
+print(pib_ts_S21, calendar=FALSE)
+```
+
+## Manipulation des objets ts
+
+\tiny
+```{r pib_ts_time, echo=TRUE}
+time(pib_ts)
+```
+
+## Manipulation des objets ts
+
+\tiny
+```{r pib_ts_time2, echo=TRUE}
+library(lubridate)
+as.numeric(time(pib_ts))
+```
+
+## Séries multiples
+
+Le package stats définit aussi une notion de série temporelle multiple. Ce sont des objets de classe mts (abréviation de multiple time series ) qui représentent simultanément plusieurs séries
+temporelles dont les observations correspondent au même découpage du temps : elles ont les mêmes paramètres start, end et frequency.
+
+\tiny
+```{r pib_ts_mult, echo=TRUE}
+pib_ts <- ts(pib[2:ncol(pib)], frequency=4,start=c(1949,1))
+window(pib_ts, start=2020)
+```
+## Les objets tsibble
+
+- On créé un objet tsibble avec la fonction as_tsibble()
+- To coerce a data frame to tsibble, we need to declare key and index. 
+- Ici on créé une colonne QUARTER de type yearquarter contenant le trimestre qui va être utilisée automatiquement comme index
+- Other columns can be considered as measured variables.
+
+\tiny
+```{r pib_tsibble, echo=TRUE, message=FALSE}
+library(tsibble)
+
+pib_tsbl <- pib_tbl %>% mutate(ANNEE=as.numeric(ANNEE), TRIMESTRE=as.numeric(TRIMESTRE)) %>% 
+  mutate(QUARTER=make_yearquarter(year=ANNEE, quarter=TRIMESTRE)) %>%
+  select(-ANNEE, -TRIMESTRE, -PERIODE) %>% as_tsibble()
+pib_tsbl
+```
+
+## Librairies spécialisées
+
+- feasts (Feature Extraction And Statistics for Time Series) provides a collection of tools for the analysis of time series data. The package name is an acronym comprising of its key features: .
+- The package works with tidy temporal data provided by the tsibble package to produce time series features, decompositions, statistical summaries and convenient visualisations. 
+- These features are useful in understanding the behaviour of time series data, and closely integrates with the tidy forecasting workflow used in the fable package.
+
+
+# Analyse descriptive et représentations graphiques
+
+## Représenter des séries temporelles
+
+```{r sunspot, echo=FALSE, fig.height=4, fig.width=6}
+plot(pib_ts[,2:10],xlab="Trimestre",ylab="PIB")
+```
+
+## Représentation avec ggplot
+
+- Basic line plot
+
+\tiny
+```{r , fig.height=4, fig.width=6, warning=FALSE}
+ggplot(data = pib_tsbl, aes(x = QUARTER, y = PIB))+
+  geom_line(color = "#00AFBB", size = 2)
+```
+
+## Représentation avec ggplot - Echelle logarithmique
+
+```{r , fig.height=6, fig.width=10, warning=FALSE}
+# Basic line plot
+ggplot(data = pib_tsbl, aes(x = QUARTER, y = log(PIB))) +
+  geom_line(color = "#00AFBB", size = 2)
+```
+## Plot multiple time series data
+
+- Here, we’ll plot the variables psavert and uempmed by dates. 
+- You should first reshape the data using the tidyr package: 
+  - Collapse psavert and uempmed values in the same column (new column). R function: gather()[tidyr] - Create a grouping variable that with levels = psavert and uempmed
+
+\small
+```{r, warnings=F, message=FALSE}
+df <- pib_tsbl %>%
+  select(QUARTER, PIB, P54) %>%
+  gather(key = "variable", value = "value", -QUARTER)
+head(df, 3)
+```
+\normalsize
+
+## Plot multiple time series data (2)
+
+```{r, warnings=F, message=FALSE}
+# Multiple line plot
+ggplot(df, aes(x = QUARTER, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  theme_minimal()
+```
+
+
+## D?saisonnalisez ? l'aide de la r?gression lin?aire
+
+On souhaite d?saisonnaliser la s?rie temporelle airpass ? l'aide de la r?gression lin?aire.
+On cr?? ? cet effet les bases tendancielle et saisonni?re :
+
+```{r}
+t=1:144
+
+for (i in 1:12)
+{
+  su=rep(0,times=12)
+  su[i]=1
+  s=rep(su,times=12)
+  assign(paste("s",i,sep=""),s)
+}
+```
+
+On effectue la r?gression lin?aire (le mod?le est transform?, comme vu en cours, 
+afin de pallier le probl?me de colin?arit?) sur la s?rie Yt  :
+reg=lm(y~t+s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+s12-1)
+summary(reg)

@@ -1,0 +1,118 @@
+\documentclass{article}
+
+\usepackage{styles}
+\usepackage{titlesec}
+
+\PaperTitle{Analyse de séries temporelles avec R}
+\begin{document}
+\maketitle
+
+
+\hline
+\vspace{0.5cm}
+\noindent{\textbf{Formateur: Alexis Gabadinho}} \\
+\textbf{Email: \href{mailto:alexis.gabadinho@protonmail.com}{alexis.gabadinho@protonmail.com}} \\
+%\textbf{Office: Office} \\
+% \multicolumn{3}{c}{Office Hours: TBD}\\
+\hline                                   
+\vspace{0.5cm}
+
+\section*{Notes}
+
+\begin{itemize}[noitemsep]
+\item La formation se déroule sur deux journées
+\item Environ 10 participants
+\item Exemples / exercices pratiques faits sur les données de comptabilité nationale, en particulier le PIB
+\item Les participants suivent par ailleurs une formation à R
+\end{itemize}
+
+\section{Environnement de travail (rappels)}
+
+\begin{itemize}[noitemsep]
+\item Utilisation de R et RStudio, R markdown
+\item Importation de données à partir de fichiers \texttt{.csv} et \texttt{Excel}
+\item Le \texttt{tidyverse} (utilisation de \texttt{dplyr}, objets \texttt{tibble})
+\item Utilisation de \texttt{ggplot}
+\end{itemize}
+
+\section{Librairies spécialisées et structures de séries temporelles dans R}
+
+\begin{itemize}[noitemsep]
+\item Les objets \texttt{ts} et \texttt{tsibble}
+\item Les librairies \textbf{forecast}, \textbf{feasts}, \textbf{fable}, ...
+\end{itemize}
+
+\section{Séries temporelles: définitions et propriétés}
+
+\begin{itemize}[noitemsep]
+\item Moyenne
+\item Dispersion 
+\item Autocorrélation
+\item Stationarité
+\item Saisonalité
+\item Hétéroscédasticité
+\end{itemize}
+
+
+\section{Analyse descriptive et représentations graphiques d’une série temporelle}
+
+\begin{itemize}[noitemsep]
+\item Chronogramme
+\item Lag plot
+\item Corrélogramme (ACF)
+\end{itemize}
+
+\section{Régression linéaire}
+
+\begin{itemize}[noitemsep]
+\item Principes de la régression linéaire
+\item Hypothèses et analyse des résidus: 
+\begin{itemize}[noitemsep]
+\item Normalité
+\item Autocorrélation des résidus (test de Durbin-Watson)
+\item Homoscédasticité (test de  Breush-Pagan)
+\end{itemize}
+\end{itemize}
+
+
+\section{Transformation des données et stabilisation de la variance}
+
+\begin{itemize}[noitemsep]
+\item Transformation logarithmique
+\item Désaisonnalisation par la régression linéaire 
+\item Désaisonnalisation par les moyennes mobiles
+\end{itemize}
+
+
+\section{Décomposition d’une série temporelle}
+
+\begin{itemize}[noitemsep]
+\item Modèle additif
+\item Modèle multiplicatif
+\end{itemize}
+
+
+\section{Prévision avec les méthodes de lissage exponentiel}
+
+\begin{itemize}[noitemsep]
+\item Lissage exponentiel simple
+\item Lissage exponentiel double
+\item Méthode de Holt-Winters
+\end{itemize}
+
+\section{Modélisation de séries stationnaires et non stationnaires}
+
+\begin{itemize}[noitemsep]
+\item Modèle ARMA
+\item Modèle ARIMA
+\end{itemize}
+
+
+\section{Modèles multivariés}
+
+\begin{itemize}[noitemsep]
+\item Modèle VAR
+\item Modèle à correction d'erreur (VEC)
+\end{itemize}
+
+\end{document}

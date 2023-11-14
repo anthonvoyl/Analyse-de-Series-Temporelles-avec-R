@@ -1,0 +1,416 @@
+---
+title: "Analyse de séries temporelles avec R"
+author: "Alexis Gabadinho"
+date: "2023-10-05"
+
+output:
+  beamer_presentation:
+    theme: "AnnArbor"
+    colortheme: "dolphin"
+    fonttheme: "structurebold"
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Environnement de travail (rappels)
+
+## Importation de fichiers csv (1)
+
+- PIB et ses composants, valeurs aux prix courants - Source: INSEE
+- On importe les données à partir du fichier csv
+- A noter: dans le fichier csv, le séparateur décimal est un point virgule
+
+\tiny
+```{r pib_read, echo=TRUE, fig.height=6, fig.width=10}
+pib <- read.csv("../data/pib_fr.csv", header=TRUE, sep=";", dec = ",")
+head(pib)
+```
+
+## Importation de fichiers csv (1)
+
+- P7 = Importations
+- P3M = Dépenses de consommation des ménages
+- P3 = Dépenses de consommation totale
+- P51 = FBCF (formation brute de capital fixe total)
+- P51M = FBCF (formation brute de capital fixe ménages)
+- P6 = Exportations
+
+## Importation de fichiers csv (2)
+
+\tiny
+```{r pib_summary, echo=TRUE, fig.height=6, fig.width=10}
+summary(pib)
+```
+
+## Importation de fichiers csv (1)
+
+* Advance retail sales (commerce de détail) - données mensuelles
+* Source: FRED (Federal Reserve Bank Economic Data)
+* On importe les données à partir du fichier csv
+* A noter: 
+  + dans le fichier csv, le séparateur décimal est un point
+
+\tiny
+```{r retail_read, echo=TRUE, fig.height=6, fig.width=10}
+retail <- read.csv("../data/RSXFSN.csv", header=TRUE, sep=",", dec = ".")
+head(retail)
+```
+\normalsize
+- Convesion de la date
+```{r}
+retail$DATE <- as.Date(retail$DATE,format="%Y-%m-%d")
+```
+
+
+## Le tidyverse
+
+- Collection de librairies
+
+\tiny
+```{r tidyverse_load, echo=TRUE}
+library(tidyverse)
+```
+
+## Importation de fichiers csv (2)
+
+- Pour importer les données à partir du fichier csv dans un objet tibble
+- read_csv2() uses ; for the field separator and , for the decimal point. This format is common in some European countries.
+
+\tiny
+```{r pib_read_ts, echo=TRUE, fig.height=6, fig.width=10}
+pib_tbl <- read_csv2("../data/pib_fr.csv")
+head(pib_tbl)
+```
+
+## Extraction de l'année
+
+\tiny
+```{r pib_mutate, echo=TRUE, fig.height=6, fig.width=10}
+pib_tbl <- pib_tbl %>% mutate(ANNEE=substring(PERIODE, 1, 4), TRIMESTRE=substring(PERIODE, 6, 7))
+pib_tbl %>% select("PIB", "ANNEE", "TRIMESTRE")
+```
+
+## Matrice de corrélation
+
+\tiny
+```{r pib_corr, echo=TRUE, fig.height=6, fig.width=10}
+datanum <- pib_tbl %>% select(-PERIODE, -ANNEE, -TRIMESTRE)
+cormat <- round(cor(datanum),2)
+cormat
+```
+
+## Heatmap
+
+\tiny
+```{r pib_corr_heatmap, echo=TRUE, message=FALSE, fig.height=3, fig.width=6}
+library(reshape2)
+cormat %>% melt() %>% ggplot(aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+```
+
+
+## Pairplot
+
+\tiny
+```{r pib_pairplot, echo=TRUE, fig.height=6, fig.width=10}
+library(GGally)
+pib_tbl %>% select(PIB, P7, P3M, P3, P51M, P51, P6) %>% ggpairs() 
+```
+
+# Librairies spécialisées et structures de séries temporelles dans R
+
+## Séries temporelles avec R (1)
+
+- La classe de base fournie par R pour représenter des séries temporelles s’appelle `ts' (abréviation de l’anglais time series). Cette classe est définie dans le package stats. 
+- Elle concerne des séries temporelles qui sont échantillonnées à des périodes équidistantes dans le temps. 
+
+
+## Séries temporelles avec R (2)
+
+- Un objet de classe ts possède trois paramètres caractéristiques :
+  - frequency désigne le nombre d’observations par unité de temps. Si l’unité de temps de la série est l’année, la valeur 4 correspond à des trimestres et la valeur 12 à des mois ;
+  - start désigne la date de début de la série temporelle. Elle est exprimée comme un nombre unique ou comme un vecteur de deux entiers qui représentent respectivement une unité temporelle (comme une année) et une subdivision de cette unité (comme un mois ou un trimestre selon la valeur du paramètre frequency) ;
+  - end désigne la date de fin de la série temporelle. Sa valeur est exprimée comme pour le paramètre start
+
+## Transformation des données pib en objet ts
+
+- Pour les données pib, frequency=4 (trimestres)
+
+\tiny
+```{r pib_ts, echo=TRUE, fig.height=6, fig.width=10}
+pib_ts <- ts(pib['PIB'], frequency=4, start=c(1949,1))
+class(pib_ts)
+```
+```{r}
+head(pib_ts, 12)
+```
+
+## Transformation des données pib en objet ts
+
+- Pour les données retail, frequency=12 (mois)
+
+\tiny
+```{r retail_ts, echo=TRUE}
+retail_ts <- ts(retail['RSXFSN'], frequency=12, start=c(1992,1))
+head(retail_ts, 36)
+```
+
+
+## Manipulation des objets ts
+
+- La fonction window permet d’extraire une portion d’une série temporelle. Elle possède des arguments start et end pour indiquer les dates de début et de fin de la série extraite. On peut aussi
+utiliser l’argument optionnel frequency pour réétalonner la nouvelle série selon une fréquence différente. L’argument optionnel extend prend une valeur logique ( TRUE ou FALSE ) : il autorise l’extension d’une série temporelle à des dates qui ne figurent pas dans la série initiale
+\tiny
+```{r pib_ts_S21, echo=TRUE}
+pib_ts_S21 <- window(pib_ts, start=2018)
+print(pib_ts_S21, calendar=FALSE)
+```
+
+## Manipulation des objets ts
+
+Extraction de l'index
+\tiny
+```{r pib_ts_time, echo=TRUE}
+time(pib_ts_S21)
+```
+
+## Manipulation des objets ts
+
+\tiny
+```{r pib_ts_time2, echo=TRUE}
+library(lubridate)
+as.numeric(time(pib_ts_S21))
+```
+
+## Séries multiples
+
+- Le package stats définit aussi une notion de série temporelle multiple. 
+- Ce sont des objets de classe mts (multiple time series) qui représentent simultanément plusieurs séries
+temporelles dont les observations correspondent au même découpage du temps : elles ont les mêmes paramètres start, end et frequency.
+
+\tiny
+```{r pib_ts_mult, echo=TRUE}
+pib_ts <- ts(pib[2:ncol(pib)], frequency=4,start=c(1949,1))
+window(pib_ts, start=2020)
+```
+## Les objets tsibble
+
+- On créé un objet tsibble avec la fonction as_tsibble()
+- To coerce a data frame to tsibble, we need to declare key and index. 
+- Ici on créé une colonne QUARTER de type yearquarter contenant le trimestre qui va être utilisée automatiquement comme index
+- Other columns can be considered as measured variables.
+
+\tiny
+```{r pib_tsibble, echo=TRUE, message=FALSE}
+library(tsibble)
+
+pib_tsbl <- pib_tbl %>% mutate(ANNEE=as.numeric(ANNEE), TRIMESTRE=as.numeric(TRIMESTRE)) %>% 
+  mutate(QUARTER=make_yearquarter(year=ANNEE, quarter=TRIMESTRE)) %>%
+  select(-ANNEE, -TRIMESTRE, -PERIODE) %>% as_tsibble()
+pib_tsbl
+```
+
+## Librairies spécialisées
+
+- feasts (Feature Extraction And Statistics for Time Series) provides a collection of tools for the analysis of time series data. The package name is an acronym comprising of its key features: .
+- The package works with tidy temporal data provided by the tsibble package to produce time series features, decompositions, statistical summaries and convenient visualisations. 
+- These features are useful in understanding the behaviour of time series data, and closely integrates with the tidy forecasting workflow used in the fable package.
+
+
+# Analyse descriptive et représentations graphiques
+
+## Représenter des séries temporelles
+
+```{r sunspot, echo=FALSE, fig.height=4, fig.width=6}
+plot(pib_ts[,2:10],xlab="Trimestre",ylab="PIB")
+```
+
+## Représentation avec ggplot
+
+- Basic line plot
+
+\tiny
+```{r , fig.height=3, fig.width=6, warning=FALSE}
+ggplot(data = pib_tsbl, aes(x = QUARTER, y = PIB))+
+  geom_line(color = "#00AFBB", size = 2)
+```
+
+## Représentation avec ggplot - Echelle logarithmique
+
+```{r , fig.height=3, fig.width=6, warning=FALSE}
+# Basic line plot
+ggplot(data = pib_tsbl, aes(x = QUARTER, y = log(PIB))) +
+  geom_line(color = "#00AFBB", size = 2)
+```
+## Plot multiple time series data
+
+- Here, we’ll plot the variables psavert and uempmed by dates. 
+- You should first reshape the data using the tidyr package: 
+  - Collapse psavert and uempmed values in the same column (new column). R function: gather()[tidyr] - Create a grouping variable that with levels = psavert and uempmed
+
+\small
+```{r, warnings=F, message=FALSE}
+df <- pib_tsbl %>%
+  select(QUARTER, PIB, P54) %>%
+  gather(key = "variable", value = "value", -QUARTER)
+head(df, 3)
+```
+\normalsize
+
+## Plot multiple time series data (2)
+
+\small
+```{r, warnings=F, message=FALSE, fig.height=3, fig.width=8}
+# Multiple line plot
+ggplot(df, aes(x = QUARTER, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  theme_minimal()
+```
+\normalsize
+
+## Autocorrélation plot
+
+\small
+```{r, warnings=F, message=FALSE, fig.height=3, fig.width=8}
+library(feasts)
+pib_tsbl %>% ACF(PIB) %>% autoplot()
+```
+
+
+# Transformation des données et stabilisation de la variance
+
+## D\'{e}saisonnalisez \`{a} l'aide de la r\'{e}gression lin\'{e}aire
+
+* On souhaite désaisonnaliser la série temporelle retail l'aide de la régression linéaire.
+* On créé les bases tendancielle et saisonnière :
+
+\tiny
+```{r}
+retail_1992_2022 <- retail %>% filter(year(DATE)<2023)
+
+annees = nrow(retail_1992_2022)/12
+t=1:annees
+```
+
+
+```{r}
+for (i in 1:12)
+{
+  su=rep(0,times=12)
+  su[i]=1
+  s=rep(su,times=annees)
+  assign(paste("s",i,sep=""),s)
+}
+cbind(retail_1992_2022[,"RSXFSN"],s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12)[1:12,]
+```
+\normalsize
+
+On effectue la r\'{e}gression lin\'{e}aire (le mod\`{e}le est transform\'{e}, comme vu en cours, afin de pallier le probl?me de colin?arit?) sur la s?rie Yt  :
+reg=lm(y~t+s1+s2+s3+s4+s5+s6+s7+s8+s9+s10+s11+s12-1)
+summary(reg)
+
+# Décomposition d'une série temporelle
+
+## Decompositions (1)
+
+- A common task in time series analysis is decomposing a time series into some simpler components. 
+
+
+
+## Trend and Seasonality
+
+In general, trends in the data can be linear:
+$$y_t = \beta_0 + \beta_1 \cdot t + \epsilon_t$$
+or exponential: 
+$$\ln(y_t) = \beta_0 + \beta_1 \cdot t + \epsilon_t$$
+Note that $\beta_1$ in the exponential time trend model is the average annual growth rate (assuming $t$ is in years). 
+
+## Trend and Seasonality
+
+Often, data can be decomposed into three components:
+
+* Trend
+* Season
+* Random component
+
+The seasonal component can be included via dummy variables. For example, for quarterly data the following model can be used:
+
+$$y_t=\beta_0+\delta_1 \cdot Q1_t+\delta_2 \cdot Q2_t+\delta_3 \cdot Q3_t+\beta_1 \cdot x_{1,t}+ \cdots+\beta_k \cdot x_{k,t}+\epsilon_t$$
+One seasonal dummy must be dropped. That is, quarterly and yearly data require three and eleven dummy variables, respectively. 
+
+## Trend and Seasonality
+
+* Données `retail` sur le commerce de détail
+* On créé une variable catégorielle (factor) pour le mois
+* Le temps est un index T de 1 à ...
+
+\tiny
+```{r, fig.height=3, fig.width=6}
+retail$MONTH = factor(month(retail$DATE), labels=month(1:12, label=TRUE))
+retail$T     = c(1:nrow(retail))
+bhat         = lm(RSXFSN ~ MONTH+T, data=retail)
+summary(bhat)
+```
+\normalsize
+
+## Trend and Seasonality
+
+- Prédiction du modèle
+
+\tiny
+```{r, fig.height=4, fig.width=4}
+retail$fit   = predict.lm(bhat)
+ggplot(data=retail) + geom_point(mapping=aes(x=RSXFSN, y=fit), color="blue")
+```
+\normalsize
+
+
+## Trend and Seasonality
+
+- Données `retail` sur le commerce de détail 
+
+\tiny
+```{r, fig.height=3, fig.width=6}
+ggplot(retail)+
+  geom_line(mapping=aes(x=T,y=RSXFSN),color="red")+
+  geom_line(mapping=aes(x=T,y=fit))
+```
+\normalsize
+
+
+
+## Trend and Seasonality
+
+The function tslm from the package forecast is used next. The function fits a linear model including seasonality and a trend component (and a trend-squared component if desired).
+
+\tiny
+```{r}
+library(forecast)
+bhat = tslm(pib_ts[,'PIB']~trend+I(trend^2)+season)
+summary(bhat)
+```
+\normalsize
+
+## Décomposition avec la librairie *feasts* (1)
+
+- The feasts package supports two common time series decomposition methods:
+  - Classical decomposition
+  - STL decomposition
+
+\tiny    
+```{r}
+dcmp <- pib_tsbl %>%
+  model(STL(PIB ~ season(window = Inf)))
+components(dcmp)
+```
+\normalsize
+
+## Décomposition avec la librairie *feasts* (2)
+
+```{r,  fig.height=4, fig.width=8}
+components(dcmp) %>% autoplot()
+```
