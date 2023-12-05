@@ -834,56 +834,6 @@ dwtest(modelHetzel, data=growthofmoney)
 ```
 
 
-## Test de changement structurel
-
-- Le test de **Chow** permet d'identifier un éventuel changement structurel dans les données
-- Le rejet de l'hypotèse H0 signifie qu'un meilleur ajustement peut être obtenu avec deux droites de régression  (i.e. les paramètres du modèle ne sont pas stables)
-- On utilise la librairie `strucchange` (voir [article]( https://www.jstatsoft.org/article/view/v007i02))
-- Pour ce test on doit indiquer la date du changement structurel à priori (ou l'index du point)
-
-## Test de Chow - Données `growthofmoney`
-
-
-
-## Test de changement structurel - Résultats
-
-- Pour la série du PNB nominal on teste un changement structurel en 1933
-
-```{r}
-nelplo1909 %>% 
-  mutate(point=1:nrow(nelplo1909)) %>%
-  filter(index>=1929 & index < 1935) %>% select(point, index, gnp.nom)
-```
-
-- La p-valeur du test est inférieure à 0.05, on rejette H0
-
-```{r}
-library(strucchange)
-model <- gnp.nom ~ index
-sctest(model, point=25, data=nelplo1909, type="Chow")
-```
-
-## Test de changement structurel - Extension
-
-- La librairie `strucchange` propose une extension du test de Chow: le changement structurel est recherché sur un intervalle
-- Il faut préparer les données: ici la régression inclut le temps comme variable explicative, l'année doit être présente comme série dans l'objet `ts`
-```{r}
-model <- gnp.nom ~ year
-
-tdata <- Nelson_Plosser %>% 
-  filter(year>=1909)
-tdata <- ts(tdata, start=1909)
-```
-
-## Test de changement structurel - Extension
-
-- La statistique F est calculée pour chacun des points de l'intervalle
-- Si sa valeur est élevée (supérieure au seuil de 5% représenté par la linge rouge) 
-```{r, out.width="70%", fig.aling='center'}
-fs <- Fstats(model, from = 10, to = 60, data = tdata)
-plot(fs)
-```
-
 ## Modèle de régression multivarié
 
 - Modèle de régression multivarié = plusieurs variables indépendantes:
@@ -926,6 +876,62 @@ AIC(mod1, mod2, mod3)
 ```
 
 - On retient le modèle ayant le plus faible AIC, ici le modèle 3
+
+
+## Test de changement structurel
+
+- Soit le modèle de régression linéaire standard: $$y_i = x_i^T \beta_i + u_i \quad (i=1,\ldots, N)$$
+où $y_i$ est l'observation de la variable dépendante et le vecteur $x_i = (1, x_{i2} , \ldots , x_{ik}$ l'obsevation des variables indépendantes au temps $i$
+- Les tests de changement structurel proposent de tester l'hypothèse $$H0: \beta_i=\beta_0 \quad (i=1,\ldots, N)$$
+- Le test de **Chow** permet d'identifier un éventuel changement structurel dans les données au point fourni **a priori** par l'utilisateur
+- Le rejet de l'hypotèse H0 signifie qu'un meilleur ajustement peut être obtenu avec deux droites de régression  (i.e. les paramètres du modèle ne sont pas stables)
+
+
+## Test de Chow - Données `growthofmoney`
+
+- On utilise la librairie `strucchange` (voir [article]( https://www.jstatsoft.org/article/view/v007i02))
+- On reproduit ici l'exemple  W. Krämer & H. Sonnberger (1986), The Linear Regression Model under Test. Heidelberg: Physica (voir p. 138): test de changement structurel au premier trimestre 1974
+- La p-valeur est supérieure à 0.05, on rejette H0, il n'y a pas de changement structurel au premier trimestre 1974 
+
+```{r}
+sctest(modelHetzel, point=c(1973,4), data=growthofmoney, type="Chow")
+```
+
+
+## Test de changement structurel - Données Nelson-Plossser
+
+- Pour la série du PNB nominal (log) on teste un changement structurel en 1933
+
+```{r}
+rdata <- Nelson_Plosser[,c("year", "gnp.nom")]
+rdata[,"logGNP"] = log(rdata[,"gnp.nom"])
+rdata <- rdata[rdata$year>=1909,]
+rdata <- ts(rdata, start=1909)
+window(rdata, end=1916)
+```
+
+## Test de changement structurel - Données Nelson-Plosser
+
+- La p-valeur du test est inférieure à 0.05, on rejette H0
+
+```{r}
+library(strucchange)
+model <- logGNP ~ year
+sctest(model, point=c(1933,1), data=rdata, type="Chow")
+```
+
+## Test de changement structurel - Extension
+
+- La librairie `strucchange` propose une extension du test de Chow: le changement structurel est recherché sur un intervalle
+- La statistique $F$ est calculée pour chacun des points de l'intervalle
+- On rejette H0 pour des valeurs élevées de $F$ (supérieure au seuil représenté par la ligne rouge) 
+```{r, out.width="60%", fig.align='center'}
+fs <- Fstats(model, from = c(1920,1), to = c(1980,1), data = rdata)
+plot(fs)
+```
+
+## Test de changement structurel - Extension
+
 
 ## Exercice
 
@@ -1578,9 +1584,10 @@ window(Canada, start=c(1980,1), end=c(1981,4))
 ```{r, out.witdh="70%", fig.align='center'}
 plot(Canada, nc = 2, xlab = "")
 ```
+
 ## Série multivariée - Analyse préliminaire
 
-- Le modèle VAR ne permet de modéliser que des séries stationnaires
+- Le modèle VAR ne permet de modéliser que des séries $stationnaires$
 - Un test de stationarité ADF (Augmented Dickey-Fuller) est réalisé sur les 4 séries
 - Toutes les séries sont rendues stationnaires avec une intégration d'ordre 1
 
@@ -1625,3 +1632,50 @@ summary(p1ct, equation = "e")
 ```{r, out.width="70%", fig.align="center"}
 plot(p1ct, names = "e")
 ```
+
+
+## Modèles ECM
+
+- Nous allons utliser les données `USIncExp` et suivre l'exemple de l' [article]( https://www.jstatsoft.org/article/view/v007i02) présentant la librairie `strucchange`
+```{r}
+USIncExp2 <- window(USIncExp, start = c(1985,12))
+```
+
+- La fonction de consommation (consumption function) est modélisée par un modèle ECM (cf. Hansen
+, 1992a): $$\Delta c_t = \beta_1 + \beta_2 e_{t-1} + \beta_3 \Delta i_t + \mu_t \quad (1)$$
+$$e_t = c_t - \alpha_1 - \alpha_2 \space i_t \quad (2)$$
+où $c_t$ représente les dépenses de consommation et $i_t$ le revenu 
+
+
+## Modèle ECM - Equation de cointégration
+
+- L'équation de cointégration (2) est estimée à l'aide d'un modèle OLS
+$$c_t = \alpha_1 + \alpha_2 \space i_t + e_t$$
+- Les résidus $\hat{e}_t$ seront utilisés comme variable indépendante dans la modélisation de la fonction de consommation (1)
+```{r}
+coint.res <- residuals(lm(expenditure ~ income, data = USIncExp2))
+```
+
+## Modèle ECM - Préparation des données
+
+- On utilise la fonction `lag` car les résidus dans l'équation (1) sont à $t-1$
+- On utilise la fonction `diff` pour intégrer les séries (obtenir $\Delta c_t$ et $\Delta i_t$)
+```{r}
+coint.res <- stats::lag(ts(coint.res, start = c(1985,12), freq = 12), k = -1)
+USIncExp2 <- cbind(USIncExp2, diff(USIncExp2), coint.res)
+USIncExp2 <- window(USIncExp2, start = c(1986,1), end = c(2001,2))
+colnames(USIncExp2) <- c("income", "expenditure", "diff.income", "diff.expenditure", "coint.res")
+window(USIncExp2, start=c(1986,1), end=c(1986,12))
+```
+
+
+## Modèle ECM - Estimation
+
+
+- La variable dépendante est l'augmentation des dépenses and les variables indépendantes sont les résidus de  cointegration et l'augmenation des revenus (plus une constante)
+
+```{r}
+ecm.model <- diff.expenditure ~ coint.res + diff.income
+summary(lm(ecm.model, data=USIncExp2))
+```
+
