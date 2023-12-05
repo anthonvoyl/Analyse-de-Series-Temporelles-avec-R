@@ -1541,7 +1541,6 @@ forecast(arimod, h=24)
 plot(forecast(arimod, h=24))
 ```
 
-
 ## Exercice
 
 - Ajustez un modèle ARMA ou ARIMA sur la série du PIB français
@@ -1554,10 +1553,16 @@ plot(forecast(arimod, h=24))
 
 - Les modèles VAR (Vector Autoregression) sont l'extension des modèles AR à des séries multivariées
 - L'évolution d'une série est modélisée par ses valeurs passées et celles des autres séries
-- La série multivariée $y_t=(y_{1t}, \ldots, y_{kt}, \ldots, y_{Kt}), k=1,\ldots, K$ contient $K$ variables
+- La série multivariée $y_t=(y_{1t}, \ldots, y_{kt}, \ldots, y_{Kt}), \quad k=1,\ldots, K$ contient $K$ variables
 - Un processus VAR(p) est défini par: $$y_t = A_1 y_{t-1} + \ldots + A_p y_{t-p} + \mu_t$$
 avec $E(\mu_t)=0$
 - $A_i$ est une matrice de $(K \times K)$ coefficients, $i=1, \ldots, p$
+
+## Stationarité des séries temporelles multivariées
+
+- La série multivariée $y_t$ est stationnaire (covariance stationary) si:
+  - Son espérance est constante: $E(y_t) = \mu$, $\mu = (\mu_1, \mu_2, \ldots, \mu_K)^T$
+  - La covariance $cov(X_{t_1i} , X_{t_2j})$ est fonction uniquement de $t2 - t1$ pour chaque $i$ et $j$
 
 ## Série multivariée - Données `Canada`
 
@@ -1671,8 +1676,7 @@ window(USIncExp2, start=c(1986,1), end=c(1986,12))
 
 ## Modèle ECM - Estimation
 
-
-- La variable dépendante est l'augmentation des dépenses and les variables indépendantes sont les résidus de  cointegration et l'augmenation des revenus (plus une constante)
+- La variable dépendante est l'augmentation des dépenses et les variables indépendantes sont les résidus de  cointegration et l'augmentation des revenus (plus une constante)
 
 ```{r}
 ecm.model <- diff.expenditure ~ coint.res + diff.income
