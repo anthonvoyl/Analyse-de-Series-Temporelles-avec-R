@@ -1,7 +1,7 @@
 ---
 title: "Analyse de séries temporelles avec R"
 author: "Alexis Gabadinho"
-date: "2023-10-05"
+date: "6 décembre 2023"
 header-includes:
 - \titlegraphic{\centering \includegraphics[width=8cm]{igpde.jpeg}}
 
