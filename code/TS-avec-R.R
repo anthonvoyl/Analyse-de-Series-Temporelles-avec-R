@@ -19,7 +19,7 @@ theme_set(theme_minimal())
 
 
 ## ----nelplo_read, echo=TRUE--------------------------------------------
-Nelson_Plosser <- read.csv2("../data/Nelson_Plosser.csv", header=TRUE, sep=",", dec = ".")
+Nelson_Plosser <- read.csv2("/home/alex/Devel/Cours-TS-R/data/Nelson_Plosser.csv", header=TRUE, sep=",", dec = ".")
 head(Nelson_Plosser)
 
 

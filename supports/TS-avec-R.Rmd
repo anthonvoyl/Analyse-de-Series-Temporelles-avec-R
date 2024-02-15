@@ -1,9 +1,10 @@
 ---
 title: "Analyse de séries temporelles avec R"
 author: "Alexis Gabadinho"
-date: "6 décembre 2023"
+date: $`r format(Sys.Date(), "%d/%m/%Y")`$
 header-includes:
 - \titlegraphic{\centering \includegraphics[width=8cm]{igpde.jpeg}}
+bibliography: tseries.bib
 
 output:
   beamer_presentation:
@@ -62,6 +63,7 @@ knitr::knit_hooks$set(chunk = function(x, options) {
 ```{r tidyverse_load, echo=TRUE}
 library(tidyverse)
 ```
+
 - Pour les graphiques nous utiliserons principalement la librairie `ggplot2`, avec le theme `minimal`
 
 ```{r ggplot_load, echo=TRUE}
@@ -71,7 +73,7 @@ theme_set(theme_minimal())
 
 ## Données Nelson-Plosser - Introduction
 
-- Nous allons utiliser les données 'Nelson-Plosser', provenant de l'article orignal: C. R. Nelson and C. I. Plosser (1982), [Trends and Random Walks in Macroeconomic Time Series. Journal of Monetary Economics](https://www.sciencedirect.com/science/article/abs/pii/0304393282900125?via%3Dihub)
+- Nous allons utiliser les données 'Nelson-Plosser', provenant de l'article orignal: @Nelson-1982, [Trends and Random Walks in Macroeconomic Time Series. Journal of Monetary Economics](https://www.sciencedirect.com/science/article/abs/pii/0304393282900125?via%3Dihub)
 - Le jeu de données contient 14 séries temporelles macroécononiques
 - La longueur des séries est variable, mais elles se terminent toutes en 1988
 - Le jeu de données est décrit [ici](http://korora.econ.yale.edu/phillips/data/np&enp.dat)
@@ -148,6 +150,7 @@ cormat %>% melt() %>% ggplot(aes(x=Var1, y=Var2, fill=value)) +
 ```{r GGally, echo=FALSE}
 library(GGally)
 ```
+
 - On sélectionne ici un sous-ensemble de variables pour limiter la taille du graphique
 
 ```{r, message=FALSE}
@@ -274,7 +277,7 @@ window(USIncExp, start=c(1959,6), end=c(1960,6))
 - Pour les données retail, frequency=12 (mois)
 
 ```{r retail_ts, echo=TRUE}
-retail_ts <- ts(retail['RSXFSN'], frequency=12, start=c(1992,1))
+retail_ts <- ts(retail['RSXFSN'], frequency=12, start=c(1997,3))
 window(retail_ts, start=2020)
 ```
 
@@ -393,8 +396,8 @@ nelplo_tsbl %>%
   - Son espérance est égale à 0: $\forall t \in \mathbb{Z}: \mathbb{E}(\epsilon_{t})=0$
   - Sa variance est constante: $\mathbb{E}(\sigma^2_t) = \sigma^2$
   - La covariance entre $(\epsilon_t)$ et $(\epsilon_{t-h})$ est nulle : $\forall t \in \mathbb{Z}, \forall h \in \mathbb{Z}: Cov(\epsilon_t,\epsilon_{t-h})=0$
-- Un bruit blanc gaussien ${\epsilon_t}$ est une série de variables aléatoires indépendantes et identiquement distribuées (i.i.d), suivant une loi normale de moyenne nulle et de variance $\sigma^2_z$ $N(0, \sigma^2_z)$
-- Un bruit blanc est une série strictement stationnaire
+- Un bruit blanc gaussien ${\epsilon_t}$ est une série de variables aléatoires indépendantes et identiquement distribuées (i.i.d), suivant une loi normale $N(0, \sigma^2_z)$ de moyenne nulle et de variance $\sigma^2_z$ 
+- Un bruit blanc est une série **strictement stationnaire**
 
 
 ## Bruit blanc (white noise) - Graphique
@@ -755,7 +758,7 @@ bptest(mod1)
 
 ## Graphique de la série des résidus
 
-```{r}
+```{r, out.width="70%", fig.align='center'}
 gdata <- tibble(index=1:nrow(mod1_diag), residus=mod1_diag$residual)
 gdata %>% ggplot() + geom_point(aes(x=index, y=residus), color="red")
 ```
@@ -763,7 +766,7 @@ gdata %>% ggplot() + geom_point(aes(x=index, y=residus), color="red")
 
 ## Autocorrélation des résidus - ACF 
 
-- On peut utiliser un graphique `acf` pour visualiser la fonction d'autocorrélation des résidus
+- Un graphique `acf()` permet de visualiser la fonction d'autocorrélation des résidus
 
 ```{r, out.width="70%", fig.align='center'}
 acf(mod1_diag$residual)
@@ -985,7 +988,7 @@ components(dcmp) %>% ggplot() +
 
 ## Tendance linéaire
 
-- Une série temporelle dont l'évolution est une fonction **déterministe** du temps est non-sationnaire
+- Une série temporelle dont l'évolution est une fonction **déterministe** du temps est non-stationnaire
 - Une série dont l’évolution autour d’une fonction déterministe du temps est stationnaire est dite stationnaire à une tendance près (trend stationary)
 - On peut décrire une tendance linéaire par le modèle 
 $$y_t = \beta_0 + \beta_1 \cdot t + \epsilon_t$$
@@ -1016,6 +1019,7 @@ USIncExp %>% as_tsibble() %>% filter(key=='expenditure') %>%
 regdata <- USIncExp %>% as_tsibble() %>% filter(key=='expenditure')
 summary(lm(value ~ index, data=regdata))
 ```
+
 - Le coefficient associé au temps (index) est significativement différent de 0 (p-valeur < 0.05)
 
 ## Tendance exponentielle
@@ -1049,7 +1053,7 @@ summary(lm(value ~ index, data=regdata))
 - Par exemple dans l'article original de Nelson et Plosser, toutes les séries à l'exception de la série `stock.price` (prix des actions) sont transformées en log: 
 "*The tendency of economic time series to exhibit variation that increases in mean and dispersion in proportion to absolute level motivates the transformation to natural logs and the assumption that trends are linear in the transformed data.*"
 - L'utilisation du log d'une série:
-  - diminue donc l'hétéroscédasticité (stabilisation de la variance)
+  - diminue donc l'hétéroscédasticité (stabilisation de la variance) (cf. par ex.  @Pfaff-2008, p. 15)
   - transforme une tendance exponentielle en tendance linéaire
 
 
@@ -1153,12 +1157,46 @@ library(forecast)
 bhat = tslm(retail_ts~trend+I(trend^2)+season)
 summary(bhat)
 ```
+## Stationarité des séries macroéconomiques
+
+- De nombreuses séries temporelles macroéconomiques ne sont pas stationnaires
+- Il existe différents types de non-stationnarité, et c'est l'objet notamment de l'article de @Nelson-1982, qui arguent que les séries temporelles macroéconomiques sont plus souvent caractétisées par une non-stationarité de type *unit-root nonstationarity* que par une tendance déterministe @Kleiber-2008, p. 164
+
 
 ## Stationarisation
+
+- Une série présentant une tendance et/ou une saisonnalité ne pourra pas être modélisée par un processus stationnaire
+- Soit le processus $(X_t)_{t \in \mathbf{Z}}$ vérifiant:
+$$ X_t=at + b + \epsilon_t$$
+avec $a \neq 0$ 
+- On a: $$\mathbf{E}(X_t) = \mathbf{E}(at+b+\epsilon_t) = at + b$$
+et $Cov(X_t, X_{t-h}) = \sigma^2$ si $h=0$ et  $Cov(X_t, X_{t-h}) = 0$ si $h \neq 0$
+- Le processus $(X_t)_{t \in Z}$ n'est pas stationnaire car $E(X_t)$ dépend de $t$
+
+## Stationarisation par différenciation (1)
+
+- Si on considère maintenant le processus $Y_t = X_t - X_{t-1}$, on a:
+\begin{align*}
+Y_t & = & X_t - X_{t-1} \\
+Y_t & = & at + b + \epsilon_t - a(t-1) + b + \epsilon_{t-1} \\
+    & = a + \epsilon_t - \epsilon_{t-1}
+\end{align*}
+et $\mathbf{E}(Y_t)=a$
+- La covariance $Cov(Y_t, Y_{t-h})$ est également constante dans le temps
+- On obtient un processus stationnaire $Y_t$ par différenciation de $X_t$
+
+## Stationarisation par différentiation (2)
 
 - Une série est dite intégrée d’ordre $d$, notée $I(d)$, s’il faut la diﬀérencier $d$ fois pour obtenir une série stationnaire
 - La fonction `diff()` permet d'obtenir la série intégrée
 - La série intégrée débute au temps $t+1$
+
+```{r}
+cpi_diff <- diff(NelPlo[,"cpi"],1)
+window(cpi_diff, start=1861, end=1900)
+```
+
+## Stationarisation (3)
 
 ```{r, fig.height=3, fig.width=8}
 cpi_diff <- diff(NelPlo[,"cpi"],1)
@@ -1170,12 +1208,23 @@ cpi_diff %>% as_tsibble() %>%
 
 ## Test de non-stationarité - ADF
 
-- Le test ADF (Augmented Dickey-Fuller) permet de tester la non-stationarité d'une série 
-- Avant de réaliser un test de non-stationnarité, il faut examiner le chronogramme de la série pour voir si la série présente une tendance, soit stochastique (marche aléatoire avec dérive), soit déterministe (série stationnaire à un trend déterministe près)
+- Les tests de racine unitaire (unit-root tests) permet de tester la non-stationarité d'une série 
+- Le test ADF (Augmented Dickey-Fuller) est le plus couramment utilisé
+- Avant de réaliser un test de non-stationnarité, il faut examiner le **chronogramme** de la série pour voir si la série présente une **tendance**
+  - soit stochastique (marche aléatoire avec dérive), 
+  - soit déterministe (série stationnaire à un trend déterministe près)
+
+## Tendance déterministe et tendance stochastique
+
+- Différence entre un processus stationnaire à une tendance près (trend stationnary) et un processus stationnaire par différence :
+$$ y_t = y_{t-1} + \mu = y_0 + \mu t \quad (1)$$
+$$ y_t = y_{t-1} + \epsilon_t = y_0 + \sum_{s=1}^t \epsilon_s \quad (2)$$
+où $\mu$ est une constante et $\epsilon_t$ un bruit blanc
+- Dans l'equation (1), $y_t$ est representé par une tendance déterministe, alors que dans l'équation (2) la série est expliquée par ses chocs passés (i.e., une tendance stochastique).
 
 ## Série présentant une tendance
 
-- La série du log des dépences de consommation aux USA présente une tendance
+- La série du log des dépenses de consommation aux USA présente une tendance
 
 ```{r, out.width="70%", fig.align="center"}
 USExp <- USIncExp %>% as_tsibble() %>% filter(key=='expenditure') %>%
@@ -1189,7 +1238,7 @@ ggplot(USExp, aes(x = index, y = logExp)) +
 - Nous allons tester les hypothèses: 
   - Hypothèse nulle H0: la série est non stationnaire avec dérive
   - Hypothèse alternative H1: la série est stationnaire avec trend déterministe
-- Le test considère un modèle autorégressif d'ordre p (p repésenté par le lag est inconnu)
+- Le test considère un modèle autorégressif d'ordre $p$ (p repésenté par le lag est inconnu)
 - On choisi pour commencer une valeur de $p$ élevée et on retient la première valeur du lag fortement significative
 ```{r}
 library(urca)
@@ -1297,35 +1346,75 @@ summary(ktest)
 - Leur principale limitation est qu'ils ne peuvent modéliser que des séries stationnaires, cependant, on peut transformer des séries non-stationnaires par différenciation pour les étudier avec ce cadre (modèles ARIMA)
 
 
-## Modèle autorégressif (AR)
+## Processus autorégressif (AR)
 
 - Dans un modèle auto régressif, les variables explicatives sont des valeurs passées (lags) de la variable expliquée
 - Dans un modèle AR(1) (autorégressif d'ordre 1), $y$ est retardé d'une période
-
 $$y_t=\alpha+\beta_1 \cdot y_{t-1}+\epsilon_t$$
 avec $\epsilon_t \sim N(0,\sigma^2)$
-- Pour un modèle AR(1) stationnaire, $|\beta_1|<1$ 
-- Propriétés d'un processus AR(1):
+
+## Processus autorégressif AR(1) stationnaire
+
+- La valeur de $|\beta_1|$ détermine l'évolution du processus
+  - Si $|\beta_1|<1$, le processus AR(1) est stationnaire
+  - Si $|\beta_1| \geq 1$, le processus est non-stationnaire (les chocs s'accumulent dans le temps)
+  - Si $|\beta_1| > 1$ le processus croît sans limite
+  - Si $|\beta_1| = 1$ le processus a une **racine unitaire** (unit root)
+
+## Processus autorégressif - Propriétés
+
+- Propriétés d'un processus AR(1)
   - Moyenne de $y_t$: $\mu = \frac{\alpha}{1-\beta_1}$
   - Variance: $Var(x_t) = \frac{\sigma^2_w}{1-\beta_1^2}$
   - Corrélation: $\rho_h = \beta^h_1$
+- Si $(X_t)_{t \in \mathbb{Z}}$  est un processus $AR(p)$ ses autocorrélations **partielles** s'annulent à partir du rang $p+1$
+- Les autocorrélations **simples** décroissent rapidement vers 0 (de manière exponentielle ou sinusoïdale amortie)
+
+## Modèle autorégressif AR(1) - Simulation (1)
+
+- On utilise la fonction `arima.sim()`pour simuler un processus AR(1) avec $\beta_1=0.9$ (cf. @Pfaff-2008)
+- La fonction `set.seed()` permet d'initialiser le générateur de nombres aléatoires (la série de 100 nombres aléatoires sera toujours la même)
+```{r}
+set.seed(123456)
+y <- arima.sim(n = 100, list(ar = 0.9), innov=rnorm(100))
+```
+
+## Modèle autorégressif AR(1) - Simulation (2)
+
+```{r, out.width="70%", fig.align='center'}
+op <- par(no.readonly=TRUE)
+layout(matrix(c(1, 1, 2, 3), 2, 2, byrow=TRUE))
+plot.ts(y, ylab='')
+acf(y, main='Autocorrelations', ylab='',
+    ylim=c(-1, 1), ci.col = "black")
+pacf(y, main='Partial Autocorrelations', ylab='',
+     ylim=c(-1, 1), ci.col = "black")
+par(op)
+```
 
 ## Modèle autorégressif - Données Nelson-Plosser
 
-- On peut visualiser $y$ x $y_{t-1}$ à l'aide de la fonction `gg_lag()`
-```{r, echo=FALSE, , out.width="70%", fig.align='center'}
+- On visualise $y$ x $y_{t-1}$ à l'aide de la fonction `gg_lag()`
+```{r, echo=FALSE, out.width="70%", fig.align='center'}
 nelplo1909p <- nelplo_tsbl %>% filter(index>1909)
 nelplo1909p %>% filter(key=="gnp.capita") %>%
   gg_lag(y=value, lags=1, geom="point", colour="blue")
 ```
 
-## Modèle autorégressif - Données Nelson-Plosser - ACF
+## Modèle autorégressif - Données Nelson-Plosser - ACF et PACF
 
-- Fonction d'autocorrélation avec la fonction `ACF`:
-```{r,echo=FALSE}
-nelplo1909p %>% filter(key=="gnp.capita") %>% ACF(value)
+```{r, out.width="70%", fig.align='center'}
+y <- window(NelPlo[,'gnp.capita'], start=1909)
+
+op <- par(no.readonly=TRUE)
+layout(matrix(c(1, 1, 2, 3), 2, 2, byrow=TRUE))
+plot.ts(y, ylab='')
+acf(y, main='Autocorrelations', ylab='',
+    ylim=c(-1, 1), ci.col = "black")
+pacf(y, main='Partial Autocorrelations', ylab='',
+     ylim=c(-1, 1), ci.col = "black")
+par(op)
 ```
-- La corrélation entre $y$ et $y_{t-1}$ est forte
 
 
 ## Modèle autorégressif - Estimation - Données Nelson-Plosser
@@ -1335,14 +1424,14 @@ nelplo1909p %>% filter(key=="gnp.capita") %>% ACF(value)
 rdata <- nelplo1909p %>% filter(key=="gnp.capita") 
 summary(lm(value ~ lag(value), data=rdata))
 ```
+
 - Le coefficient associé à $y_{t-1}$ est significatif, la valeur de $R^2$ est élevée 
 
 
-## Modèle moyenne mobile
+## Modèle moyenne mobile (Moving Average, MA)
 
 - $y_t$ est un processus moyenne mobile d'ordre $q$ noté MA(q) si
 $$y_t = \mu + \epsilon_t + \theta_1 \cdot \epsilon_{t-1} + \ldots + \theta_q \cdot \epsilon_{t-q}$$
-
 - On considère que le processus est la résultante d'une combinaison linéaire de perturbations decorrélées (un bruit blanc et son passé)
 - Un MA(q) est toujours stationnaire quelles que soient les valeurs des $\theta$
 - Les propriétés d'un modèle MA(1) $$y_t = \mu + \epsilon_t + \theta_1 \cdot \epsilon_{t-1}$$
@@ -1350,6 +1439,12 @@ $$y_t = \mu + \epsilon_t + \theta_1 \cdot \epsilon_{t-1} + \ldots + \theta_q \cd
 - $Var(y_t) = \sigma^2_\epsilon(1+\theta_1^2)$
 - ACF is $\rho_1 = \theta_1/(1+\theta_1^2)$ and $\rho_h = 0$ for $h \geq 2$
 
+## Modèle moyenne mobile - Autocorrélations
+
+- Si $(X_t)_{t \in \mathbb{Z}}$  est un processus $MA(q)$,sa fonction d'autocorrélation est égale à 0 pour les rangs supérieurs à $q$
+- Les autocorrélations observées sont un bon indicateur de l'ordre du processus
+- Les autocorrélations partielles tendent vers 0 exponentiellement lorsque le rang augmente (comme les corrélations simples d'un processus AR) (cf par ex. @Cryer-2010)
+- Plus généralement, on peut montrer que les autocorrélations partielles d'un modèle MA(q) se comportent comme les autocorrélations d'un modèle AR(q)
 
 ## Modèle ARMA
 
@@ -1364,21 +1459,29 @@ $$y_t = c + \phi_1 \cdot y_{t-1} + \ldots + \phi_p \cdot y_{t-p} + \epsilon_t + 
 - Si cette trajectoire peut-être considérée comme stationnaire, on peut lui ajuster un modèle ARMA(p, q) (on ne traite pas ici des séries présentant une saisonnalité)
 - La première étape consiste à choisir les ordres $p$ et $q$ 
 - Le choix de $p$ et $q$ n'est pas unique, il faut comparer plusieurs modèles
-- Le premier critère pour juger de la qualité d'un modèle est la blancheur du résidu obtenu (voir la section définitons)
+- Le premier critère pour juger de la qualité d'un modèle est la blancheur du résidu obtenu (voir la section définitions)
 
 
-## Modèle ARMA - Série des taux de chômage aux USA
+## Modèle ARMA - Taux de chômage aux USA
 
 - Nous avons vu que la série des taux de chômage aux USA peut-être considérée comme stationnaire
+```{r, echo=TRUE, out.width="70%", fig.align="center"}
+nelplo1909p %>% filter(key=="unemp") %>% autoplot()
+```
+
+## Taux de chômage aux USA - Fonction d'autocorrélation
+
 - On commence par examiner sa fonction d'autocorrélation
+
 ```{r, echo=TRUE, out.width="70%", fig.align="center"}
 nelplo1909p %>% filter(key=="unemp") %>% ACF(value) %>% autoplot()
 ```
 
-## Fonction d'autocorrélation partielle
+
+## Taux de chômage aux USA - Fonction d'autocorrélation partielle
 
 - Le coefficient d'autocorrélation partielle $\phi k,k$ représente l’apport d’explication de $y_{t-k}$
-à $y_t$, **toutes choses égales par ailleurs** ()
+à $y_t$, **toutes choses égales par ailleurs**
 - La fonction d'autocorrélation partielle permet d'identifier l'ordre $p$ d'un processus AR(p)
 
 ## Fonction d'autocorrélation partielle avec `PACF()`
@@ -1421,20 +1524,24 @@ AIC(arma.mod1, arma.mod2)
 - La fonction `auto.arima()` recherche le meilleur modèle en utilisant un critère d'information
 - Le résultat confirme le choix du modèle ARMA(1,1)
 ```{r}
-
 nelplo.arma <- auto.arima(regdata)
 nelplo.arma
 ```
 
+## Diagnostic du modèle - Significativité des paramètres
+
+```{r, echo=FALSE}
+# t_stat(nelplo.arma)
+```
+
 ## Diagnostic du modèle - Préparation
 
+- Afin de vérifier la validité des modèles estimés, on doit vérifier au minimum la significativité des paramètres et la blancheur du résidu
 - On prépare un data frame avec les valeurs observées, les valeurs prédites par le modèle, et les résidus
 ```{r}
 nelplo.arma.diag <- data.frame(regdata, prediction=nelplo.arma$fitted, residus=nelplo.arma$residuals)
 nelplo.arma.diag
 ```
-
-
 
 ## Diagnostic du modèle - Valeurs observées x prédites
 
@@ -1447,10 +1554,13 @@ nelplo.arma.diag %>%
 
 ## Diagnostic du modèle - Résidus
 
-```{r}
+- Si notre modèle est adéquat, les résidus devraient fluctuer autour de 0, sans tendance
+
+```{r, out.width="70%", fig.align='center', warning='FALSE'}
 nelplo.arma.diag %>% ggplot() + 
-  geom_point(aes(x=index, y=residus))
+  geom_point(aes(x=index, y=residus), color="blue")
 ```
+
 ## Diagnostic du modèle - Blancheur des résidus
 
 - On teste la blancheur des résidus aux retards 1 à 3
@@ -1463,6 +1573,14 @@ for (l in lags) {
 }
 res <- data.frame(lags, pval)
 res
+```
+
+
+## Diagnostic du modèle - Normalité des résidus
+
+- Le test de normalité (Shapiro) est validé
+```{r}
+shapiro.test(nelplo.arma.diag$residus)
 ```
 
 ## Projection
@@ -1549,6 +1667,16 @@ plot(forecast(arimod, h=24))
 
 # Modèles multivariés
 
+## Série temporelle multivariée
+
+- Exemple tiré de @Tsay-2013 (site [web](https://faculty.chicagobooth.edu/ruey-s-tsay/research/multivariate-time-series-analysis-with-r-and-financial-applications)
+- GDP et taux de chômage
+```{r}
+read.csv('../data/q-gdpunemp.txt', sep=' ')
+```
+
+
+
 ## Série multivariée et processus VAR
 
 - Les modèles VAR (Vector Autoregression) sont l'extension des modèles AR à des séries multivariées
@@ -1603,6 +1731,7 @@ plot(Canada, nc = 2, xlab = "")
 ```{r}
 summary(ur.df(Canada[, "prod"], type = "trend", lags = 2))
 ```
+
 ## Série multivariée - Test de stationarité sur la série `prod` intégrée
 
 - On vérifie que la série est stationnaire après différentiation
@@ -1610,6 +1739,7 @@ summary(ur.df(Canada[, "prod"], type = "trend", lags = 2))
 ```{r}
 summary(ur.df(diff(Canada[, "prod"]), type = "drift", lags = 1))
 ```
+
 ## Sélection du lag
 
 - La longueur optimale du lag est déterminée avec la fonction `VARselect`
@@ -1626,6 +1756,7 @@ VARselect(Canada, lag.max = 8, type = "both")
 ```{r}
 p1ct <- VAR(Canada, p = 1, type = "both")
 ```
+
 ## Equation pour la série `e`
 
 ```{r}
@@ -1636,6 +1767,13 @@ summary(p1ct, equation = "e")
 
 ```{r, out.width="70%", fig.align="center"}
 plot(p1ct, names = "e")
+```
+
+## Diagnostics
+
+```{r}
+ser11 <- serial.test(p1ct, lags.pt = 16, type = "PT.asymptotic")
+ser11$serial
 ```
 
 
@@ -1683,3 +1821,4 @@ ecm.model <- diff.expenditure ~ coint.res + diff.income
 summary(lm(ecm.model, data=USIncExp2))
 ```
 
+## Bibliographie
