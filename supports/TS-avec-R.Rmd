@@ -1146,7 +1146,7 @@ ggplot(gdata)+
 ```
 
 
-## Désaisonnalisation par la régression linéaire (librairie `forecast`)
+## Désaisonnalisation avec la fonction `tslm` (1)
 
 - On peut également utiliser la fonction `tslm` de la librairie `forecast` 
 - Cette fonction ajuste un modèle linéaire incluant la saisonalité et la tendance (et éventuellement la tendance au carré)
@@ -1157,6 +1157,16 @@ library(forecast)
 bhat = tslm(retail_ts~trend+I(trend^2)+season)
 summary(bhat)
 ```
+
+## Désaisonnalisation avec la fonction `tslm` (2)
+
+```{r}
+summary(bhat)
+```
+
+# Séries temporelles non-stationnaires
+
+
 ## Stationarité des séries macroéconomiques
 
 - De nombreuses séries temporelles macroéconomiques ne sont pas stationnaires
@@ -1284,7 +1294,7 @@ ggplot(Unemp, aes(x = index, y = value)) +
 
 ## Série ne présentant pas de tendance - Test ADF
 
-- Après un premier test avec `lags=6`, le premier lag singificatif est 1
+- Après un premier test avec `lags=6`, le premier lag significatif est 1
 - On regarde la statistique `tau2`, ici elle est inférieure à la valeur critique à 1% donc on rejete H0 et on conclut à la stationarité de la série
 
 ```{r}
@@ -1617,7 +1627,7 @@ après transformation d’une série initiale par passage en log
 
 ## Modèle ARIMA - Série des dépenses aggégées de consommation aux USA 
 
-- Nous avons vu que cette série (après transformation logarithmique) est non stationnaire et qu'elle possède un trand stochastique
+- Nous avons vu que cette série (après transformation logarithmique) est non stationnaire et qu'elle possède un trend stochastique
 - On peut donc la différencier puis ajuster un modèle ARIMA
 - La série différenciée a été calculée précédemment
 ```{r}
