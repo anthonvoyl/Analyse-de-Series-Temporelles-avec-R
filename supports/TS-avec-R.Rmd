@@ -4,7 +4,7 @@ author: "Alexis Gabadinho"
 date: $`r format(Sys.Date(), "%d/%m/%Y")`$
 header-includes:
 - \titlegraphic{\centering \includegraphics[width=8cm]{igpde.jpeg}}
-bibliography: tseries.bib
+bibliography: ../biblio/tseries.bib
 
 output:
   beamer_presentation:
@@ -375,18 +375,26 @@ $$\rho_j = \frac{Cov(y_t,y_{t-j})}{\sqrt{Var(y_t)\cdot Var(y_{t-j})}}$$
 - Elle permet d'identifier une structure dans la série temporelle
 
 
+## Fonction d'autocorrélation avec `acf()`
+
+- Pour les objets de la classe `ts` ou 'mts' on peut utiliser la fonction `acf()` (cette fonction produit un graphique par défaut)
+```{r, warning=FALSE}
+acf(NelPlo[,'cpi'], plot=FALSE)
+```
+
+- La corrélation entre le cpi à l'instant $t$ et le cpi à l'instant $t-1$ (une année avant) est de 0.966 
+
+
 ## Fonction d'autocorrélation avec `ACF()`
 
-- Pour les objets `tsibble` on peut utiliser la fonction `ACF()` de la librairie `feasts`
+- Pour les objets de la classe `tsibble` on peut utiliser la fonction `ACF()` de la librairie `feasts`
 
-```{r}
+```{r, warning=FALSE}
 library(feasts)
 nelplo_tsbl %>% 
   filter(key=="cpi") %>% 
   ACF(value)
 ```
-
-- La corrélation entre le cpi à l'instant $t$ et le cpi à l'instant $t-1$ (une année avant) est de 0.966 
 
 
 ## Bruit blanc (white noise)
@@ -400,11 +408,20 @@ nelplo_tsbl %>%
 - Un bruit blanc est une série **strictement stationnaire**
 
 
-## Bruit blanc (white noise) - Graphique
+## Bruit blanc gaussien - Simulation
+
+- On simule un bruit blanc gaussien en générant 100 nombres aléatoires issus d'une loi normale $N(0, 1)$
+
+```{r}
+bbg <- ts(rnorm(100))
+window(bbg, start=1, end=10)
+```
+
+## Bruit blanc gaussien - Graphique
 
 ```{r, out.width="70%", fig.align="center"}
 library(ggfortify)
-autoplot(ts(rnorm(100)))+ 
+autoplot(bbg)+ 
   ggtitle("White Noise")
 ```
 
@@ -413,13 +430,14 @@ autoplot(ts(rnorm(100)))+
 - A l'issue d'une modélisation, il nous faudrait idéalement obtenir un signal résiduel qui ne contient plus d'information temporelle
 - Dans le cadre des modèles ARMA, on souhaite que le résidu soit un bruit blanc (faible), c'est-à-dire sans dépendance temporelle linéaire
 - On peut tester la **blancheur** d'une série $y_t, t= 1, \ldots, T$ en utilisant le test de Portmanteau
-- La statistique de Portmanteau est calculée à partir les $k$ premiers coefficients d'autocorrélation
-$Q_k = T \sum_{h=1}^k \hat{\rho}^2_j$ 
-où $h$ est un décalage choisi par l’utilisateur et $\rho_j$ l’estimateur du coefficient d’autocorrélation d’ordre $j$ de la série $y_t$
+- La statistique de Portmanteau est calculée à partir des $k$ premiers coefficients d'autocorrélation
+$Q_k = T \sum_{h=1}^k \hat{\rho}^2(h)$ 
+où $k$ est un décalage choisi par l’utilisateur et $\rho_j$ l’estimateur du coefficient d’autocorrélation d’ordre $h$ de la série $y_t$
 
 ## Test de Portmanteau - Exemple
 
 - On peut utiliser les fonctions `box_pierce()` et `ljung_box()` (pour les petits échantillons) de la librairie `feasts`
+- Par défaut $k=1$ (argument `lag=1` )
 - Hypothèse H0: pas d'autocorrélation
 
 ```{r}
@@ -487,7 +505,7 @@ rwd <- tibble(time=1:tmax, y=y)
 rwd
 ```
 
-## Marche aléatoire avec dérive: Graphique
+## Marche aléatoire avec dérive - Graphique
 
  - Le graphique de $y_t$ en fonction du temps est donc celui d’une droite à laquelle est
 superposée une marche aléatoire
@@ -498,6 +516,8 @@ ggplot(rwd) + geom_line(aes(x=time, y=y), colour="blue")
 
 ## Exercice
 
+- Simulez une série temporelle $y_t, t=1, \ldots, 1000$ représentant bruit blanc gaussien suivant une loi normale $N(0,3)$ de moyenne 0 et d'écart type 3
+- Calculez la moyenne, l'écart-type et les coefficients d'autocorrélation de la série
 - Construisez une série $y_t$ représentant une marche aléatoire avec $y_0=1.39$ (données Nelson-Plosser) et $\sigma_\epsilon^2=0.41$
 - Calculez les coefficients d'autocorrélation de la série
 - Réalisez un test de Portmanteau sur la série, que concluez vous ?
@@ -1173,6 +1193,18 @@ summary(bhat)
 - Il existe différents types de non-stationnarité, et c'est l'objet notamment de l'article de @Nelson-1982, qui arguent que les séries temporelles macroéconomiques sont plus souvent caractétisées par une non-stationarité de type *unit-root nonstationarity* que par une tendance déterministe @Kleiber-2008, p. 164
 
 
+## Tendance déterministe et tendance stochastique
+
+- Différence entre un processus stationnaire à une tendance près (trend stationnary) et un processus stationnaire par différence :
+\begin{align*}
+y_t & = & y_{t-1} + \mu & = & y_0 + \mu t \quad (1) & \\
+y_t & = & y_{t-1} + \epsilon_t & = & y_0 + \sum_{s=1}^t \epsilon_s \quad & (2)
+\end{align*}
+où $\mu$ est une constante et $\epsilon_t$ un bruit blanc
+- Dans l'equation (1), $y_t$ est representé par une tendance *déterministe*
+- Dans l'équation (2) la série est expliquée par ses chocs passés (i.e., une tendance *stochastique*)
+
+
 ## Stationarisation
 
 - Une série présentant une tendance et/ou une saisonnalité ne pourra pas être modélisée par un processus stationnaire
@@ -1189,7 +1221,7 @@ et $Cov(X_t, X_{t-h}) = \sigma^2$ si $h=0$ et  $Cov(X_t, X_{t-h}) = 0$ si $h \ne
 \begin{align*}
 Y_t & = & X_t - X_{t-1} \\
 Y_t & = & at + b + \epsilon_t - a(t-1) + b + \epsilon_{t-1} \\
-    & = a + \epsilon_t - \epsilon_{t-1}
+    & = & a + \epsilon_t - \epsilon_{t-1}
 \end{align*}
 et $\mathbf{E}(Y_t)=a$
 - La covariance $Cov(Y_t, Y_{t-h})$ est également constante dans le temps
@@ -1224,13 +1256,6 @@ cpi_diff %>% as_tsibble() %>%
   - soit stochastique (marche aléatoire avec dérive), 
   - soit déterministe (série stationnaire à un trend déterministe près)
 
-## Tendance déterministe et tendance stochastique
-
-- Différence entre un processus stationnaire à une tendance près (trend stationnary) et un processus stationnaire par différence :
-$$ y_t = y_{t-1} + \mu = y_0 + \mu t \quad (1)$$
-$$ y_t = y_{t-1} + \epsilon_t = y_0 + \sum_{s=1}^t \epsilon_s \quad (2)$$
-où $\mu$ est une constante et $\epsilon_t$ un bruit blanc
-- Dans l'equation (1), $y_t$ est representé par une tendance déterministe, alors que dans l'équation (2) la série est expliquée par ses chocs passés (i.e., une tendance stochastique).
 
 ## Série présentant une tendance
 
