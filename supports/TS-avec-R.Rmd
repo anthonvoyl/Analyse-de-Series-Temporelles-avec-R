@@ -462,9 +462,8 @@ box_pierce(rnorm(100))
 - On simule une marche aléatoire avec un bruit blanc gaussien de moyenne 0 et d'écart type 1
 ```{r}
 tmax <- 100
-# ourDrift <- 0.005
 wnoise <- rnorm(99, mean=0, sd=1)
-y <- rep(0,100)
+y <- rep(0,tmax)
 
 for (t in 2:tmax) {
   y[t] = y[t-1] + wnoise[t-1] 
@@ -493,10 +492,10 @@ ggplot(rw) + geom_line(aes(x=time, y=y), colour="blue")
 
 ```{r}
 tmax <- 100
+alpha <- 0.8
 
 wnoise <- rnorm(99, mean=0, sd=1)
-y <- rep(0,100)
-alpha <- 0.8
+y <- rep(0,tmax)
 
 for (t in 2:tmax) {
   y[t] = alpha + y[t-1] + wnoise[t-1] 
