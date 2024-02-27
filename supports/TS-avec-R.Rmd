@@ -1255,6 +1255,10 @@ cpi_diff %>% as_tsibble() %>%
   - soit stochastique (marche aléatoire avec dérive), 
   - soit déterministe (série stationnaire à un trend déterministe près)
 
+## Deux cas de non-stationarité
+
+- La série $y_t$ est stationnaire autour d'une tendance déterministe (pas de racine unitaire): on peut éliminer la tendance de la série originale $y_t$ et ajuster un modèle $ARMA(p, q)$ sur les résidus
+- La série $y_t$ est intégrée (d'ordre $d$): la série est stationnaire par différence
 
 ## Série présentant une tendance
 
@@ -1267,22 +1271,29 @@ ggplot(USExp, aes(x = index, y = logExp)) +
   geom_line(color = "blue", size = 1)
 ```
 
-## Test ADF avec la fonction `urf.df` (librairie `urca`)
+## Test ADF avec la fonction `ur.df` (librairie `urca`)
 
 - Nous allons tester les hypothèses: 
   - Hypothèse nulle H0: la série est non stationnaire avec dérive
   - Hypothèse alternative H1: la série est stationnaire avec trend déterministe
 - Le test considère un modèle autorégressif d'ordre $p$ (p repésenté par le lag est inconnu)
 - On choisi pour commencer une valeur de $p$ élevée et on retient la première valeur du lag fortement significative
+
+
+## Test ADF - Série `USExp` (1)
+
+- On choisit dans un premier temps $p=12$
 ```{r}
 library(urca)
 exp.df <- ur.df(y=as.data.frame(USExp)[,"logExp"], lags=12, type='trend')
 exp.df
 ```
 
-## Test ADF: Résultats
+
+## Test ADF - Série `USExp` (2)
 
 - La première valeur $p$ fortement significative est 8
+
 ```{r}
 summary(exp.df)
 ```
@@ -1514,8 +1525,7 @@ nelplo1909p %>% filter(key=="unemp") %>% ACF(value) %>% autoplot()
 
 ## Taux de chômage aux USA - Fonction d'autocorrélation partielle
 
-- Le coefficient d'autocorrélation partielle $\phi k,k$ représente l’apport d’explication de $y_{t-k}$
-à $y_t$, **toutes choses égales par ailleurs**
+- Le coefficient d'autocorrélation partielle $\phi k,k$ représente l’apport d’explication de $y_{t-k}$ à $y_t$, **toutes choses égales par ailleurs**
 - La fonction d'autocorrélation partielle permet d'identifier l'ordre $p$ d'un processus AR(p)
 
 ## Fonction d'autocorrélation partielle avec `PACF()`

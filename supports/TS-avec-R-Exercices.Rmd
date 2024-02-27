@@ -40,7 +40,6 @@ pib <- read_csv2("../data/pib_fr.csv")
 ## Aperçu du jeu de données
 
 - Les données sont stockées dans un objet de classe `tibble`
-\center
 ```{r}
 class(pib)
 ```
@@ -207,27 +206,6 @@ as.numeric(time(pib2021p))
 ```
 
 
-```{r}
-
-```
-
-
-## Test ADF avec la fonction `urf.df` (librairie `urca`)
-
-- Nous allons tester les hypothèses: 
-  - Hypothèse nulle H0: la série est non stationnaire avec dérive
-  - Hypothèse alternative H1: la série est stationnaire avec trend déterministe
-- Le test considère un modèle autorégressif d'ordre p (p repésenté par le lag est inconnu)
-- On choisi pour commencer une valeur de $p$ élevée et on retient la première valeur du lag fortement significative
-```{r}
-
-
-library(urca)
-exp.df <- ur.df(y=as.data.frame(USExp)[,"logExp"], lags=12, type='trend')
-exp.df
-```
-
-
 ## Simulez un bruit blanc Gausssien
 
 ```{r}
@@ -277,6 +255,22 @@ box_pierce(rw["y"])
 
 # Représentez la série du PIB
 
+# Chronogramme
+
+```{r}
+pib_tsbl %>%
+  ggplot(aes(x = index, y = value)) + 
+    geom_line(aes(color = key), size = 1)
+```
+```{r}
+pib_tsbl %>% filter(key=="P54") %>%
+  ggplot(aes(x = index, y = value)) + 
+    geom_line(aes(color = key), size = 1)
+
+
+```
+
+
 ## Season plot
 
 ```{r}
@@ -285,4 +279,12 @@ pib_tsbl %>% filter(key=="PIB" & index>yearquarter("2000 Q1")) %>% gg_season()
 ```{r}
 pib_tsbl %>% filter(key=="PIB" & index>yearquarter("2000 Q1")) %>% gg_lag()
 ```
-
+```{r}
+pib_tsbl %>% filter(key=="PIB") %>% ACF() %>% autoplot()
+```
+```{r}
+pib_tsbl %>% filter(key=="P54") %>% ACF() %>% autoplot()
+```
+```{r}
+pib_tsbl %>% filter(key=="P54" & index>yearquarter("2000 Q1")) %>% gg_lag(lags=12)
+```
